@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use image::{EncodableLayout, ImageReader};
 use serialport::{SerialPort, SerialPortType};
 
 enum DisplayCommand {
@@ -10,14 +9,14 @@ enum DisplayCommand {
 }
 
 #[derive(Debug)]
-struct Display {
+pub struct Display {
     pub width: u16,
     pub height: u16,
     conn: Box<dyn SerialPort>,
 }
 
 impl Display {
-    fn new() -> Result<Self> {
+    pub fn new() -> Result<Self> {
         let available_ports = serialport::available_ports()?;
         let turing_device = available_ports
             .iter()
@@ -42,7 +41,7 @@ impl Display {
         })
     }
 
-    fn send(&mut self, bytes: &[u8]) -> Result<()> {
+    pub fn send(&mut self, bytes: &[u8]) -> Result<()> {
         if cfg!(debug_assertions) && false {
             println!("{:?}", bytes.to_ascii_lowercase());
         }
@@ -101,7 +100,13 @@ impl Display {
         self.send_stateless_command(DisplayCommand::ScreenOff)
     }
 
-    fn send_draw_rect(&mut self, start_x: u16, start_y: u16, end_x: u16, end_y: u16) -> Result<()> {
+    pub fn send_draw_rect(
+        &mut self,
+        start_x: u16,
+        start_y: u16,
+        end_x: u16,
+        end_y: u16,
+    ) -> Result<()> {
         self.send_statefull_command(
             DisplayCommand::DisplayBitmap,
             start_x,
@@ -110,41 +115,4 @@ impl Display {
             end_y,
         )
     }
-}
-
-fn rgb888_to_rgb565(buffer: &[u8; 3]) -> [u8; 2] {
-    let r = buffer[0] as u16;
-    let g = buffer[1] as u16;
-    let b = buffer[2] as u16;
-
-    //it will convert
-    //RGB888 - 24 bits to
-    //RGB565 - 16 bits
-    let word = ((r & 0b11111000) << 8) | ((g & 0b11111100) << 3) | (b >> 3);
-    [word as u8, (word >> 8) as u8]
-}
-
-fn display_draw_image(display: &mut Display, path: &str) -> Result<()> {
-    display.send_draw_rect(0, 0, display.width - 1, display.height - 1)?;
-
-    let bytes = ImageReader::open(path)?
-        .decode()?
-        .into_rgb8()
-        .as_bytes()
-        .as_chunks::<3>()
-        .0
-        .iter()
-        .flat_map(rgb888_to_rgb565)
-        .collect::<Vec<_>>();
-
-    assert!(bytes.len() == (display.width as usize * display.height as usize * 2));
-
-    display.send(bytes.as_ref())
-}
-
-fn main() -> Result<()> {
-    let mut display = Display::new()?;
-    println!("{:#?}", display);
-    display_draw_image(&mut display, "docs/sample.jpg")?;
-    Ok(())
 }
