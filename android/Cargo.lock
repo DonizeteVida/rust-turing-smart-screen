@@ -186,7 +186,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "turing-smart-screen"
+name = "turingsmartscreenandroid"
 version = "0.1.0"
 dependencies = [
  "jni",
