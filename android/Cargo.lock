@@ -3,13 +3,6 @@
 version = 4
 
 [[package]]
-name = "android"
-version = "0.1.0"
-dependencies = [
- "jni",
-]
-
-[[package]]
 name = "bytes"
 version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -190,6 +183,13 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.3",
+]
+
+[[package]]
+name = "turing-smart-screen"
+version = "0.1.0"
+dependencies = [
+ "jni",
 ]
 
 [[package]]
