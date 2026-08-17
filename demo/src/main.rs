@@ -1,6 +1,9 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use image::{EncodableLayout, ImageReader};
 use turingsmartscreen::Display;
+
+const DISPLAY_WIDTH: u16 = 320;
+const DISPLAY_HEIGHT: u16 = 480;
 
 fn rgb888_to_rgb565(buffer: &[u8; 3]) -> [u8; 2] {
     let r = buffer[0] as u16;
@@ -33,8 +36,20 @@ fn display_draw_image(display: &mut Display, path: &str) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    let mut display = Display::new()?;
+    let available_ports = Display::available_ports()?;
+    println!("Available ports: {:#?}", available_ports);
+
+    let usb_35_inchip_port = available_ports
+        .into_iter()
+        .filter(|port_info| port_info.serial_number.as_deref() == Some("USB35INCHIPSV2"))
+        .collect::<Vec<_>>()
+        .pop()
+        .context("USB35INCHIPSV2 not found")?;
+
+    let mut display = Display::new(usb_35_inchip_port, DISPLAY_WIDTH, DISPLAY_HEIGHT)?;
     println!("{:#?}", display);
+
     display_draw_image(&mut display, "docs/sample.jpg")?;
+
     Ok(())
 }

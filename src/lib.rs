@@ -15,28 +15,37 @@ pub struct Display {
     conn: Box<dyn SerialPort>,
 }
 
-impl Display {
-    pub fn new() -> Result<Self> {
-        let available_ports = serialport::available_ports()?;
-        let turing_device = available_ports
-            .iter()
-            .filter(|info| {
-                if let SerialPortType::UsbPort(ref info) = info.port_type {
-                    info.serial_number == Some("USB35INCHIPSV2".to_owned())
-                } else {
-                    false
-                }
-            })
-            .collect::<Vec<_>>()
-            .pop()
-            .context("Turing device not found")?;
+#[derive(Debug)]
+pub struct PortInfo {
+    pub port_name: String,
+    pub serial_number: Option<String>,
+}
 
-        let mut conn = serialport::new(turing_device.port_name.to_owned(), 115_200).open()?;
-        conn.write_request_to_send(true)?;
+impl Display {
+    pub fn available_ports() -> Result<Vec<PortInfo>> {
+        let available_ports = serialport::available_ports()?;
+
+        let turing_devices = available_ports
+            .into_iter()
+            .map(|info| PortInfo {
+                port_name: info.port_name.to_owned(),
+                serial_number: if let SerialPortType::UsbPort(ref info) = info.port_type {
+                    info.serial_number.clone()
+                } else {
+                    None
+                },
+            })
+            .collect::<Vec<_>>();
+
+        Ok(turing_devices)
+    }
+
+    pub fn new(port_info: PortInfo, width: u16, height: u16) -> Result<Self> {
+        let conn = serialport::new(port_info.port_name, 115_200).open()?;
 
         Ok(Self {
-            width: 320,
-            height: 480,
+            width,
+            height,
             conn,
         })
     }
